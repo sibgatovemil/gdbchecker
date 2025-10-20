@@ -1,0 +1,121 @@
+===============================================
+КОМАНДЫ ДЛЯ РАЗВЕРТЫВАНИЯ GDBCHECKER
+===============================================
+
+=== ШАГ 1: НА WINDOWS (PowerShell) ===
+
+cd C:\VSProjects
+Compress-Archive -Path .\GDBChecker\* -DestinationPath .\gdbchecker.zip
+
+# Загрузите gdbchecker.zip на сервер через WinSCP/FileZilla
+# Или используйте scp (если установлен):
+scp C:\VSProjects\gdbchecker.zip root@5.223.77.236:/tmp/
+
+
+=== ШАГ 2: ПОДКЛЮЧЕНИЕ К СЕРВЕРУ ===
+
+ssh root@5.223.77.236
+
+
+=== ШАГ 3: НА СЕРВЕРЕ (копируйте команды по порядку) ===
+
+# Обновление системы
+apt-get update && apt-get install -y unzip
+
+# Распаковка проекта
+cd /opt
+unzip /tmp/gdbchecker.zip -d gdbchecker
+cd gdbchecker
+
+# Проверка .env файла (должен быть там)
+ls -la .env
+
+# Если .env отсутствует, создайте его:
+cat > .env << 'EOF'
+DB_PASSWORD=GDBSecurePass2025!
+GOOGLE_API_KEY=AIzaSyCbtVAfxF89vL1SypaPMgBrOmuAt-G2o7E
+TELEGRAM_BOT_TOKEN=7839039906:AAFOVJPsCq1zI4psDz93RQ5tFrxhwJoLM9c
+TELEGRAM_CHAT_ID=-1002999204995
+CHECK_INTERVAL_HOURS=8
+EOF
+
+# Запуск установки и развертывания
+chmod +x deploy.sh
+./deploy.sh
+
+
+=== ШАГ 4: ПРОВЕРКА РАБОТЫ ===
+
+# Проверка статуса контейнеров
+docker compose ps
+
+# Просмотр логов
+docker compose logs -f web
+
+# Тест Telegram уведомлений
+docker compose exec web python telegram_notifier.py
+
+# Открыть в браузере
+http://5.223.77.236:8080
+
+
+=== ПОЛЕЗНЫЕ КОМАНДЫ ===
+
+# Логи приложения
+docker compose logs -f web
+
+# Логи базы данных
+docker compose logs -f db
+
+# Перезапуск
+docker compose restart
+
+# Остановка
+docker compose down
+
+# Запуск
+docker compose up -d
+
+# Статус
+docker compose ps
+
+# Ручная проверка доменов
+docker compose exec web python checker.py
+
+# Резервная копия БД
+docker compose exec db pg_dump -U gdbchecker gdbchecker > backup.sql
+
+
+=== API ПРИМЕРЫ ===
+
+# Добавить домен
+curl -X POST http://5.223.77.236:8080/api/domains \
+  -H "Content-Type: application/json" \
+  -d '{"domain": "example.com", "project": "Test", "purpose": "Landing"}'
+
+# Получить все домены
+curl http://5.223.77.236:8080/api/domains
+
+# Экспорт в CSV
+curl http://5.223.77.236:8080/api/export/csv -O
+
+
+=== РЕШЕНИЕ ПРОБЛЕМ ===
+
+# Проверка здоровья приложения
+curl http://localhost:8080/health
+
+# Пересоздание контейнеров
+docker compose down
+docker compose up -d --build
+
+# Просмотр использования ресурсов
+docker stats
+
+# Очистка Docker
+docker system prune -a
+
+
+===============================================
+ВСЕ ГОТОВО!
+===============================================

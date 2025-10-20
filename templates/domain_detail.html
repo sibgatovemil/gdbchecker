@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}{{ domain.domain }} - GDBChecker{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <a href="/" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h3><i class="bi bi-globe"></i> {{ domain.domain }}</h3>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>Project:</strong> {{ domain.project or 'Not specified' }}</p>
+                <p><strong>Purpose:</strong> {{ domain.purpose or 'Not specified' }}</p>
+                <p><strong>Created:</strong> {{ domain.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+            </div>
+            <div class="col-md-6">
+                <p><strong>Current Status:</strong>
+                    <span class="badge status-badge status-{{ domain.current_status }}">
+                        {% if domain.current_status == 'ok' %}
+                            <i class="bi bi-check-circle"></i> OK
+                        {% elif domain.current_status == 'banned' %}
+                            <i class="bi bi-x-circle"></i> BANNED
+                        {% elif domain.current_status == 'error' %}
+                            <i class="bi bi-exclamation-triangle"></i> ERROR
+                        {% else %}
+                            <i class="bi bi-clock"></i> PENDING
+                        {% endif %}
+                    </span>
+                </p>
+                <p><strong>Last Check:</strong>
+                    {% if domain.last_check_time %}
+                        {{ domain.last_check_time.strftime('%Y-%m-%d %H:%M:%S') }}
+                    {% else %}
+                        Never checked
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5><i class="bi bi-clock-history"></i> Status History</h5>
+    </div>
+    <div class="card-body">
+        {% if history %}
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>Status</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in history %}
+                    <tr>
+                        <td>{{ record.checked_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td>
+                            <span class="badge status-badge status-{{ record.status }}">
+                                {% if record.status == 'ok' %}
+                                    <i class="bi bi-check-circle"></i> OK
+                                {% elif record.status == 'banned' %}
+                                    <i class="bi bi-x-circle"></i> BANNED
+                                {% elif record.status == 'error' %}
+                                    <i class="bi bi-exclamation-triangle"></i> ERROR
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            {% if record.details %}
+                                <small class="text-muted">{{ record.details[:100] }}</small>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted">No check history available yet.</p>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
