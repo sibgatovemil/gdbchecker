@@ -35,3 +35,13 @@ docker-compose.override.yml
 # Archives
 *.zip
 *.tar.gz
+
+# Sensitive files
+.env
+*_ssh_key*
+*.key
+*.pem
+conversation-*.txt
+*-google.txt
+DEPLOY_COMMANDS.txt
+SECURITY_AUDIT.md

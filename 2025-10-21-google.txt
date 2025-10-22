@@ -373,8 +373,8 @@
 
   И мы начнем развертывание! 🚀
 
-> 1. токен бота 7839039906:AAFOVJPsCq1zI4psDz93RQ5tFrxhwJoLM9c. ID чата -1002999204995\
-2. AIzaSyCbtVAfxF89vL1SypaPMgBrOmuAt-G2o7E - API ключ от гугл под GSB\
+> 1. токен бота ###REDACTED_TELEGRAM_BOT_TOKEN###. ID чата ###REDACTED_CHAT_ID###\
+2. ###REDACTED_GOOGLE_API_KEY### - API ключ от гугл под GSB\
 3. домены дам попозже\
 4. название GDBChecker\
 5. IP адрес сервера 5.223.77.236\
@@ -412,10 +412,10 @@
      # Database
      DB_PASSWORD=your_secure_password_here
      # Google Safe Browsing API
-     GOOGLE_API_KEY=AIzaSyCbtVAfxF89vL1SypaPMgBrOmuAt-G2o7E
+     GOOGLE_API_KEY=###REDACTED_GOOGLE_API_KEY###
      # Telegram
-     TELEGRAM_BOT_TOKEN=7839039906:AAFOVJPsCq1zI4psDz93RQ5tFrxhwJoLM9c
-     TELEGRAM_CHAT_ID=-1002999204995
+     TELEGRAM_BOT_TOKEN=###REDACTED_TELEGRAM_BOT_TOKEN###
+     TELEGRAM_CHAT_ID=###REDACTED_CHAT_ID###
 
 ● Write(requirements.txt)
   ⎿  Wrote 1 lines to requirements.txt
@@ -633,12 +633,12 @@
 ● Write(.env)
   ⎿  Wrote 1 lines to .env                                            
      # Database
-     DB_PASSWORD=GDBSecurePass2025!
+     DB_PASSWORD=###REDACTED_DB_PASSWORD###
      # Google Safe Browsing API
-     GOOGLE_API_KEY=AIzaSyCbtVAfxF89vL1SypaPMgBrOmuAt-G2o7E
+     GOOGLE_API_KEY=###REDACTED_GOOGLE_API_KEY###
      # Telegram
-     TELEGRAM_BOT_TOKEN=7839039906:AAFOVJPsCq1zI4psDz93RQ5tFrxhwJoLM9c
-     TELEGRAM_CHAT_ID=-1002999204995
+     TELEGRAM_BOT_TOKEN=###REDACTED_TELEGRAM_BOT_TOKEN###
+     TELEGRAM_CHAT_ID=###REDACTED_CHAT_ID###
 
 ● Отлично! Проект полностью готов. Создам итоговый документ с инструкциями:
 
@@ -730,9 +730,9 @@
   ---
   📋 Все ваши данные уже в проекте:
 
-  - ✅ Google API Key: AIzaSyCbtVAfxF89vL1SypaPMgBrOmuAt-G2o7E
-  - ✅ Telegram Bot: 7839039906:AAFOVJPsCq1zI4psDz93RQ5tFrxhwJoLM9c
-  - ✅ Telegram Chat: -1002999204995
+  - ✅ Google API Key: ###REDACTED_GOOGLE_API_KEY###
+  - ✅ Telegram Bot: ###REDACTED_TELEGRAM_BOT_TOKEN###
+  - ✅ Telegram Chat: ###REDACTED_CHAT_ID###
   - ✅ SSH Key: ssh_key.pub
   - ✅ Сервер: 5.223.77.236
 
@@ -1121,10 +1121,10 @@ root@5.223.77.236's password:
   Файл 1: .env (конфигурация)
 
   cat > .env << 'ENDOFFILE'
-  DB_PASSWORD=GDBSecurePass2025!
-  GOOGLE_API_KEY=AIzaSyCbtVAfxF89vL1SypaPMgBrOmuAt-G2o7E
-  TELEGRAM_BOT_TOKEN=7839039906:AAFOVJPsCq1zI4psDz93RQ5tFrxhwJoLM9c
-  TELEGRAM_CHAT_ID=-1002999204995
+  DB_PASSWORD=###REDACTED_DB_PASSWORD###
+  GOOGLE_API_KEY=###REDACTED_GOOGLE_API_KEY###
+  TELEGRAM_BOT_TOKEN=###REDACTED_TELEGRAM_BOT_TOKEN###
+  TELEGRAM_CHAT_ID=###REDACTED_CHAT_ID###
   CHECK_INTERVAL_HOURS=8
   ENDOFFILE
 
@@ -1376,10 +1376,10 @@ PS C:\VSProjects\GDBChecker> \
   Создай .env файл вручную:
 
   cat > .env << 'EOF'
-  DB_PASSWORD=GDBSecurePass2025!
-  GOOGLE_API_KEY=AIzaSyCbtVAfxF89vL1SypaPMgBrOmuAt-G2o7E
-  TELEGRAM_BOT_TOKEN=7839039906:AAFOVJPsCq1zI4psDz93RQ5tFrxhwJoLM9c
-  TELEGRAM_CHAT_ID=-1002999204995
+  DB_PASSWORD=###REDACTED_DB_PASSWORD###
+  GOOGLE_API_KEY=###REDACTED_GOOGLE_API_KEY###
+  TELEGRAM_BOT_TOKEN=###REDACTED_TELEGRAM_BOT_TOKEN###
+  TELEGRAM_CHAT_ID=###REDACTED_CHAT_ID###
   CHECK_INTERVAL_HOURS=8
   EOF
 
@@ -1392,13 +1392,13 @@ PS C:\VSProjects\GDBChecker> \
 
 ● Понял! Давай через отдельные echo команды (по одной строке):
 
-  echo "DB_PASSWORD=GDBSecurePass2025!" > .env
+  echo "DB_PASSWORD=###REDACTED_DB_PASSWORD###" > .env
 
-  echo "GOOGLE_API_KEY=AIzaSyCbtVAfxF89vL1SypaPMgBrOmuAt-G2o7E" >> .env
+  echo "GOOGLE_API_KEY=###REDACTED_GOOGLE_API_KEY###" >> .env
 
-  echo "TELEGRAM_BOT_TOKEN=7839039906:AAFOVJPsCq1zI4psDz93RQ5tFrxhwJoLM9c" >> .env
+  echo "TELEGRAM_BOT_TOKEN=###REDACTED_TELEGRAM_BOT_TOKEN###" >> .env
 
-  echo "TELEGRAM_CHAT_ID=-1002999204995" >> .env
+  echo "TELEGRAM_CHAT_ID=###REDACTED_CHAT_ID###" >> .env
 
   echo "CHECK_INTERVAL_HOURS=8" >> .env
 
@@ -1434,10 +1434,10 @@ PS C:\VSProjects\GDBChecker> \
 
   Откроется редактор. Набери руками (или скопируй построчно):
 
-  DB_PASSWORD=GDBSecurePass2025!
-  GOOGLE_API_KEY=AIzaSyCbtVAfxF89vL1SypaPMgBrOmuAt-G2o7E
-  TELEGRAM_BOT_TOKEN=7839039906:AAFOVJPsCq1zI4psDz93RQ5tFrxhwJoLM9c
-  TELEGRAM_CHAT_ID=-1002999204995
+  DB_PASSWORD=###REDACTED_DB_PASSWORD###
+  GOOGLE_API_KEY=###REDACTED_GOOGLE_API_KEY###
+  TELEGRAM_BOT_TOKEN=###REDACTED_TELEGRAM_BOT_TOKEN###
+  TELEGRAM_CHAT_ID=###REDACTED_CHAT_ID###
   CHECK_INTERVAL_HOURS=8
 
   Потом нажми:
@@ -1477,10 +1477,10 @@ PS C:\VSProjects\GDBChecker> \
 > [Image #1] 
 
 ● АХУЕННО! Вижу файл .env создался! В конце экрана видно:
-  DB_PASSWORD=GDBSecurePass2025!
-  GOOGLE_API_KEY=AIzaSyCbtVAfxF89vL1SypaPMgBrOmuAt-G2o7E
-  TELEGRAM_BOT_TOKEN=7839039906:AAFOVJPsCq1zI4psDz93RQ5tFrxhwJoLM9c
-  TELEGRAM_CHAT_ID=-1002999204995
+  DB_PASSWORD=###REDACTED_DB_PASSWORD###
+  GOOGLE_API_KEY=###REDACTED_GOOGLE_API_KEY###
+  TELEGRAM_BOT_TOKEN=###REDACTED_TELEGRAM_BOT_TOKEN###
+  TELEGRAM_CHAT_ID=###REDACTED_CHAT_ID###
   CHECK_INTERVAL_HOURS=8
 
   Теперь перезапусти Docker контейнеры:
@@ -1561,10 +1561,10 @@ PS C:\VSProjects\GDBChecker> \
 
   Вставь:
   environment:
-    - DATABASE_URL=postgresql://gdbchecker:GDBSecurePass2025!@db:5432/gdbchecker
-    - GOOGLE_API_KEY=AIzaSyCbtVAfxF89vL1SypaPMgBrOmuAt-G2o7E
-    - TELEGRAM_BOT_TOKEN=7839039906:AAFOVJPsCq1zI4psDz93RQ5tFrxhwJoLM9c
-    - TELEGRAM_CHAT_ID=-1002999204995
+    - DATABASE_URL=postgresql://gdbchecker:###REDACTED_DB_PASSWORD###@db:5432/gdbchecker
+    - GOOGLE_API_KEY=###REDACTED_GOOGLE_API_KEY###
+    - TELEGRAM_BOT_TOKEN=###REDACTED_TELEGRAM_BOT_TOKEN###
+    - TELEGRAM_CHAT_ID=###REDACTED_CHAT_ID###
     - FLASK_ENV=production
     - CHECK_INTERVAL_HOURS=8
 
@@ -1572,7 +1572,7 @@ PS C:\VSProjects\GDBChecker> \
   POSTGRES_PASSWORD: ${DB_PASSWORD}
 
   На:
-  POSTGRES_PASSWORD: GDBSecurePass2025!
+  POSTGRES_PASSWORD: ###REDACTED_DB_PASSWORD###
 
   Сохрани (Ctrl+O, Enter, Ctrl+X).
 
@@ -1604,7 +1604,7 @@ PS C:\VSProjects\GDBChecker> \
 
   Проблема: Пароль не передается, поэтому PostgreSQL не может стартануть.
 
-  Решение: Замени ${DB_PASSWORD} на реальный пароль GDBSecurePass2025! прямо в docker-compose.yml (как я написал выше).
+  Решение: Замени ${DB_PASSWORD} на реальный пароль ###REDACTED_DB_PASSWORD### прямо в docker-compose.yml (как я написал выше).
 
   Делай правку в nano, потом перезапускай. Это должно сработать!
 
@@ -1713,7 +1713,7 @@ PS C:\VSProjects\GDBChecker> \
 
   Telegram бот работает! Тестовое сообщение отправлено в твой канал.
 
-  Проверь свой Telegram канал (ID: -1002999204995) - там должно быть сообщение:
+  Проверь свой Telegram канал (ID: ###REDACTED_CHAT_ID###) - там должно быть сообщение:
 
   🔔 GDBChecker - Тестовое сообщение
 
@@ -1749,7 +1749,7 @@ PS C:\VSProjects\GDBChecker> \
   1. Google API Key - ОТОЗВАТЬ:
 
   - Иди в https://console.cloud.google.com/apis/credentials
-  - Найди ключ AIzaSyCbtVAfxF89vL1SypaPMgBrOmuAt-G2o7E
+  - Найди ключ ###REDACTED_GOOGLE_API_KEY###
   - Удали его
   - Создай новый ключ
   - Обнови на сервере в .env и в docker-compose.yml

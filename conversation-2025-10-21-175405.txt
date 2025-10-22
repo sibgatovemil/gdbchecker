@@ -158,14 +158,14 @@
   Какой вариант используешь? Парольный доступ или SSH ключи?
 
 > ну я же тебе дал ключ в самом начале - ssh. вот он ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILvswLKjDkUhui3L2cWc8UacjwzkmQwjbPSuMY5tk463\
-вот пароль - fsAJCd4x3sjT 
+вот пароль - ###REDACTED_SERVER_PASS### 
 
 ● Понял! Сейчас подключусь и всё протестирую.
 
-● Bash(sshpass -p 'fsAJCd4x3sjT' ssh -o StrictHostKeyChecking=no root@5.223.77.236 'cd /opt/gdbchecker && docker compose ps') timeout: 30s
+● Bash(sshpass -p '###REDACTED_SERVER_PASS###' ssh -o StrictHostKeyChecking=no root@5.223.77.236 'cd /opt/gdbchecker && docker compose ps') timeout: 30s
   ⎿  Error: /usr/bin/bash: line 1: sshpass: command not found
 
-● Bash(ssh -o StrictHostKeyChecking=no root@5.223.77.236 'cd /opt/gdbchecker && docker compose ps' <<< 'fsAJCd4x3sjT') timeout: 30s
+● Bash(ssh -o StrictHostKeyChecking=no root@5.223.77.236 'cd /opt/gdbchecker && docker compose ps' <<< '###REDACTED_SERVER_PASS###') timeout: 30s
   ⎿  Running in the background (down arrow to manage)
 
 ● BashOutput(Reading shell output)
@@ -230,7 +230,7 @@
 
 ● Давай попробуем! Сейчас попытаюсь подключиться через SSH с паролем.
 
-● Bash(echo 'fsAJCd4x3sjT' | ssh -o StrictHostKeyChecking=no -o PubkeyAuthentication=no root@5.223.77.236 'echo "Connected successfully" && cd /opt/gdbchecker && docke…) timeout: 30s
+● Bash(echo '###REDACTED_SERVER_PASS###' | ssh -o StrictHostKeyChecking=no -o PubkeyAuthentication=no root@5.223.77.236 'echo "Connected successfully" && cd /opt/gdbchecker && docke…) timeout: 30s
   ⎿  Running in the background (down arrow to manage)
 
 ● BashOutput(Reading shell output)
@@ -332,7 +332,7 @@
   systemctl restart sshd
 
   # 3. Покажи текущий пароль root (если забыл)
-  echo "Текущий пароль: fsAJCd4x3sjT"
+  echo "Текущий пароль: ###REDACTED_SERVER_PASS###"
 
   # 4. Или смени пароль на новый
   passwd
@@ -366,7 +366,7 @@
 
   ssh root@5.223.77.236
 
-  Введи пароль: fsAJCd4x3sjT
+  Введи пароль: ###REDACTED_SERVER_PASS###
 
   Если зайдет - значит пароль работает. Тогда я смогу подключаться автоматически.
 
@@ -376,11 +376,11 @@
 
   И установи новый простой пароль (например Test1234), скажи мне какой поставил.
 
-> новый пароль - !qaz@WSX123 
+> новый пароль - ###REDACTED_SERVER_PASS### 
 
 ● Отлично! Теперь попробую подключиться с новым паролем:
 
-● Bash(sshpass -p '!qaz@WSX123' ssh -o StrictHostKeyChecking=no root@5.223.77.236 'echo "Connected successfully!" && hostname && whoami') timeout: 15s
+● Bash(sshpass -p '###REDACTED_SERVER_PASS###' ssh -o StrictHostKeyChecking=no root@5.223.77.236 'echo "Connected successfully!" && hostname && whoami') timeout: 15s
   ⎿  Error: /usr/bin/bash: line 1: sshpass: command not found
 
 ● У меня нет sshpass. Давай создадим SSH ключ для автоматического подключения.

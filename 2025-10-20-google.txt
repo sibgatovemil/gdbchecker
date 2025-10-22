@@ -373,8 +373,8 @@
 
   И мы начнем развертывание! 🚀
 
-> 1. токен бота 7839039906:AAFOVJPsCq1zI4psDz93RQ5tFrxhwJoLM9c. ID чата -1002999204995\
-2. AIzaSyCbtVAfxF89vL1SypaPMgBrOmuAt-G2o7E - API ключ от гугл под GSB\
+> 1. токен бота ###REDACTED_TELEGRAM_BOT_TOKEN###. ID чата ###REDACTED_CHAT_ID###\
+2. ###REDACTED_GOOGLE_API_KEY### - API ключ от гугл под GSB\
 3. домены дам попозже\
 4. название GDBChecker\
 5. IP адрес сервера 5.223.77.236\
@@ -412,10 +412,10 @@
      # Database
      DB_PASSWORD=your_secure_password_here
      # Google Safe Browsing API
-     GOOGLE_API_KEY=AIzaSyCbtVAfxF89vL1SypaPMgBrOmuAt-G2o7E
+     GOOGLE_API_KEY=###REDACTED_GOOGLE_API_KEY###
      # Telegram
-     TELEGRAM_BOT_TOKEN=7839039906:AAFOVJPsCq1zI4psDz93RQ5tFrxhwJoLM9c
-     TELEGRAM_CHAT_ID=-1002999204995
+     TELEGRAM_BOT_TOKEN=###REDACTED_TELEGRAM_BOT_TOKEN###
+     TELEGRAM_CHAT_ID=###REDACTED_CHAT_ID###
 
 ● Write(requirements.txt)
   ⎿  Wrote 1 lines to requirements.txt
@@ -633,12 +633,12 @@
 ● Write(.env)
   ⎿  Wrote 1 lines to .env                                            
      # Database
-     DB_PASSWORD=GDBSecurePass2025!
+     DB_PASSWORD=###REDACTED_DB_PASSWORD###
      # Google Safe Browsing API
-     GOOGLE_API_KEY=AIzaSyCbtVAfxF89vL1SypaPMgBrOmuAt-G2o7E
+     GOOGLE_API_KEY=###REDACTED_GOOGLE_API_KEY###
      # Telegram
-     TELEGRAM_BOT_TOKEN=7839039906:AAFOVJPsCq1zI4psDz93RQ5tFrxhwJoLM9c
-     TELEGRAM_CHAT_ID=-1002999204995
+     TELEGRAM_BOT_TOKEN=###REDACTED_TELEGRAM_BOT_TOKEN###
+     TELEGRAM_CHAT_ID=###REDACTED_CHAT_ID###
 
 ● Отлично! Проект полностью готов. Создам итоговый документ с инструкциями:
 
@@ -730,9 +730,9 @@
   ---
   📋 Все ваши данные уже в проекте:
 
-  - ✅ Google API Key: AIzaSyCbtVAfxF89vL1SypaPMgBrOmuAt-G2o7E
-  - ✅ Telegram Bot: 7839039906:AAFOVJPsCq1zI4psDz93RQ5tFrxhwJoLM9c
-  - ✅ Telegram Chat: -1002999204995
+  - ✅ Google API Key: ###REDACTED_GOOGLE_API_KEY###
+  - ✅ Telegram Bot: ###REDACTED_TELEGRAM_BOT_TOKEN###
+  - ✅ Telegram Chat: ###REDACTED_CHAT_ID###
   - ✅ SSH Key: ssh_key.pub
   - ✅ Сервер: 5.223.77.236
 
