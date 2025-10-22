@@ -19,6 +19,34 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 CORS(app)
 
+# Jinja2 filter for Moscow timezone
+@app.template_filter('moscow_time')
+def moscow_time_filter(dt):
+    """Convert UTC datetime to Moscow time (UTC+3)"""
+    if dt is None:
+        return None
+    # Add 3 hours to UTC time
+    moscow_dt = dt + timedelta(hours=3)
+    return moscow_dt.strftime('%Y-%m-%d %H:%M')
+
+@app.template_filter('moscow_time_full')
+def moscow_time_full_filter(dt):
+    """Convert UTC datetime to Moscow time with seconds (UTC+3)"""
+    if dt is None:
+        return None
+    # Add 3 hours to UTC time
+    moscow_dt = dt + timedelta(hours=3)
+    return moscow_dt.strftime('%Y-%m-%d %H:%M:%S')
+
+@app.template_filter('moscow_time_pretty')
+def moscow_time_pretty_filter(dt):
+    """Convert UTC datetime to pretty Moscow time format"""
+    if dt is None:
+        return None
+    # Add 3 hours to UTC time
+    moscow_dt = dt + timedelta(hours=3)
+    return moscow_dt.strftime('Проверено: %d.%m.%Y в %H:%M')
+
 # Flask-Login setup
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -177,7 +205,9 @@ def add_domain():
             domain=domain_name,
             project=data.get('project', '').strip() or None,
             purpose=data.get('purpose', '').strip() or None,
-            current_status='pending'
+            current_status='pending',
+            added_by=current_user.username,
+            autorenew=data.get('autorenew', 'unknown')  # Default to unknown
         )
 
         session.add(new_domain)
@@ -376,31 +406,23 @@ def send_status_telegram():
 @app.route('/api/check-domains', methods=['POST'])
 @login_required
 def trigger_domain_check():
-    """Trigger immediate domain check"""
+    """Trigger immediate domain check in background"""
     try:
-        # Run checker.py in background
-        result = subprocess.run(
+        # Run checker.py in background without waiting
+        subprocess.Popen(
             ['python', 'checker.py'],
-            capture_output=True,
-            text=True,
-            timeout=300  # 5 minutes timeout
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
         )
 
-        if result.returncode == 0:
-            return jsonify({
-                'success': True,
-                'message': 'Domain check completed successfully',
-                'output': result.stdout
-            }), 200
-        else:
-            return jsonify({
-                'success': False,
-                'error': 'Check failed',
-                'output': result.stderr
-            }), 500
+        logger.info(f"Domain check triggered by user {current_user.username}")
 
-    except subprocess.TimeoutExpired:
-        return jsonify({'error': 'Check timeout (>5 minutes)'}), 504
+        return jsonify({
+            'success': True,
+            'message': 'Проверка доменов запущена в фоне. Это займет несколько минут. Обновите страницу через 2-3 минуты для просмотра результатов.'
+        }), 200
+
     except Exception as e:
         logger.error(f"Error triggering domain check: {str(e)}")
         return jsonify({'error': str(e)}), 500

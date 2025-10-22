@@ -8,20 +8,17 @@
         <h2><i class="bi bi-speedometer2"></i> Dashboard</h2>
     </div>
     <div class="col text-end">
-        <button class="btn btn-info" onclick="sendStatusToTelegram()">
-            <i class="bi bi-telegram"></i> Send Status to Telegram
-        </button>
         <button class="btn btn-warning" onclick="checkAllDomains()">
-            <i class="bi bi-arrow-repeat"></i> Check All Domains
+            <i class="bi bi-arrow-repeat"></i> Проверить домены
         </button>
         <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#importCsvModal">
-            <i class="bi bi-upload"></i> Import CSV
+            <i class="bi bi-upload"></i> Импорт CSV
         </button>
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDomainModal">
-            <i class="bi bi-plus-circle"></i> Add Domain
+            <i class="bi bi-plus-circle"></i> Добавить домен
         </button>
         <a href="/api/export/csv" class="btn btn-success">
-            <i class="bi bi-download"></i> Export CSV
+            <i class="bi bi-download"></i> Экспорт CSV
         </a>
     </div>
 </div>
@@ -91,8 +88,11 @@
                         <th>Domain</th>
                         <th>Project</th>
                         <th>Purpose</th>
-                        <th>Status</th>
+                        <th>SafeBrowsing</th>
+                        <th>SSL</th>
                         <th>Last Check</th>
+                        <th>Добавлен</th>
+                        <th>Добавил</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -120,12 +120,35 @@
                             </span>
                         </td>
                         <td>
+                            <span class="badge status-badge status-{{ domain.ssl_status or 'pending' }}">
+                                {% if domain.ssl_status == 'valid' %}
+                                    <i class="bi bi-shield-check"></i> VALID
+                                {% elif domain.ssl_status == 'expired' %}
+                                    <i class="bi bi-shield-exclamation"></i> EXPIRED
+                                {% elif domain.ssl_status == 'invalid' %}
+                                    <i class="bi bi-shield-x"></i> INVALID
+                                {% elif domain.ssl_status == 'missing' %}
+                                    <i class="bi bi-shield-slash"></i> MISSING
+                                {% else %}
+                                    <i class="bi bi-clock"></i> PENDING
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td>
                             {% if domain.last_check_time %}
-                                {{ domain.last_check_time.strftime('%Y-%m-%d %H:%M') }}
+                                {{ domain.last_check_time|moscow_time }}
                             {% else %}
-                                Never
+                                Никогда
                             {% endif %}
                         </td>
+                        <td>
+                            {% if domain.created_at %}
+                                {{ domain.created_at|moscow_time }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>{{ domain.added_by or 'Неизвестно' }}</td>
                         <td>
                             <a href="/domain/{{ domain.id }}" class="btn btn-sm btn-info">
                                 <i class="bi bi-eye"></i>
@@ -275,64 +298,26 @@ async function deleteDomain(id, domain) {
     }
 }
 
-// Send status to Telegram
-async function sendStatusToTelegram() {
-    const btn = event.target;
-    const originalText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Sending... (may take up to 1 minute)';
-
-    try {
-        // Increase timeout for large reports
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 seconds
-
-        const response = await fetch('/api/telegram/send-status', {
-            method: 'POST',
-            signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-
-        const data = await response.json();
-
-        if (response.ok) {
-            alert('✅ Status report sent to Telegram!');
-        } else {
-            alert('❌ Error: ' + (data.error || 'Unknown error'));
-        }
-    } catch (e) {
-        if (e.name === 'AbortError') {
-            alert('⏱️ Request timeout. The report may still be sending in background. Please check Telegram in 1-2 minutes.');
-        } else {
-            alert('❌ Network error: ' + e.message);
-        }
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-    }
-}
-
 // Check all domains
 async function checkAllDomains() {
-    if (!confirm('Start checking all domains? This may take several minutes.')) return;
+    if (!confirm('Запустить проверку всех доменов?\n\nПосле проверки автоматически будет отправлен отчет в Telegram.\n\nЭто займет несколько минут.')) return;
 
     const btn = event.target;
     const originalText = btn.innerHTML;
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Checking...';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Проверка...';
 
     try {
         const response = await fetch('/api/check-domains', { method: 'POST' });
         const data = await response.json();
 
         if (response.ok) {
-            alert('✅ Domain check completed successfully!');
-            location.reload();
+            alert('✅ Проверка доменов запущена в фоне.\n\nПо завершении:\n• Отчет будет отправлен в Telegram\n• Обновите страницу через 2-3 минуты для просмотра результатов');
         } else {
-            alert('❌ Error: ' + (data.error || 'Unknown error'));
+            alert('❌ Ошибка: ' + (data.error || 'Неизвестная ошибка'));
         }
     } catch (e) {
-        alert('❌ Network error: ' + e.message);
+        alert('❌ Ошибка сети: ' + e.message);
     } finally {
         btn.disabled = false;
         btn.innerHTML = originalText;

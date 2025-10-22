@@ -3,7 +3,9 @@
 import requests
 import os
 import json
-from datetime import datetime
+import ssl
+import socket
+from datetime import datetime, timedelta
 from models import get_session, Domain, StatusHistory
 from telegram_notifier import TelegramNotifier
 import logging
@@ -96,6 +98,58 @@ class DomainChecker:
             logger.error(f"Unexpected error checking domain {domain}: {str(e)}")
             return 'error', f"Unexpected error: {str(e)}"
 
+    def check_ssl(self, domain):
+        """
+        Check SSL certificate status
+        Returns: 'valid', 'expired', 'invalid', 'missing'
+        """
+        try:
+            # Try HTTPS connection
+            context = ssl.create_default_context()
+
+            with socket.create_connection((domain, 443), timeout=10) as sock:
+                with context.wrap_socket(sock, server_hostname=domain) as ssock:
+                    cert = ssock.getpeercert()
+
+                    # Check if certificate is valid
+                    not_after = cert.get('notAfter')
+                    if not_after:
+                        # Parse expiration date
+                        from datetime import datetime
+                        expiry_date = datetime.strptime(not_after, '%b %d %H:%M:%S %Y %Z')
+
+                        if expiry_date < datetime.utcnow():
+                            return 'expired'
+
+                    # Certificate is valid
+                    return 'valid'
+
+        except ssl.SSLError as e:
+            # SSL error - invalid or self-signed certificate
+            logger.warning(f"SSL error for {domain}: {str(e)}")
+            if 'certificate verify failed' in str(e).lower():
+                return 'invalid'
+            return 'invalid'
+
+        except socket.gaierror:
+            # Domain doesn't resolve
+            logger.warning(f"Domain {domain} doesn't resolve")
+            return 'missing'
+
+        except (socket.timeout, ConnectionRefusedError, OSError):
+            # HTTPS not available - try HTTP to check if domain exists
+            try:
+                response = requests.head(f"http://{domain}", timeout=5, allow_redirects=True)
+                # Domain exists but no HTTPS
+                return 'missing'
+            except:
+                # Domain completely unavailable
+                return 'missing'
+
+        except Exception as e:
+            logger.error(f"Unexpected error checking SSL for {domain}: {str(e)}")
+            return 'missing'
+
     def check_all_domains(self):
         """Check all domains in database"""
         session = get_session()
@@ -113,11 +167,16 @@ class DomainChecker:
 
             for domain in domains:
                 try:
+                    # Check SafeBrowsing status
                     status, details = self.check_domain(domain.domain)
                     old_status = domain.current_status
 
+                    # Check SSL status
+                    ssl_status = self.check_ssl(domain.domain)
+
                     # Update domain status
                     domain.current_status = status
+                    domain.ssl_status = ssl_status
                     domain.last_check_time = datetime.utcnow()
 
                     # Create history record
@@ -159,12 +218,80 @@ class DomainChecker:
             logger.info(f"Check cycle completed: {checked_count}/{total} domains checked, "
                        f"{banned_count} newly banned, {unbanned_count} unbanned, {error_count} errors")
 
+            # Send status report to Telegram after check
+            self.send_status_report(session)
+
         except Exception as e:
             logger.error(f"Error in check_all_domains: {str(e)}")
             session.rollback()
 
         finally:
             session.close()
+
+    def send_status_report(self, session):
+        """Send status report to Telegram"""
+        try:
+            domains = session.query(Domain).all()
+            total = len(domains)
+            ok_count = sum(1 for d in domains if d.current_status == 'ok')
+            banned_count = sum(1 for d in domains if d.current_status == 'banned')
+            error_count = sum(1 for d in domains if d.current_status == 'error')
+            pending_count = sum(1 for d in domains if d.current_status == 'pending')
+
+            # SSL Statistics
+            ssl_valid = sum(1 for d in domains if d.ssl_status == 'valid')
+            ssl_expired = sum(1 for d in domains if d.ssl_status == 'expired')
+            ssl_invalid = sum(1 for d in domains if d.ssl_status == 'invalid')
+            ssl_missing = sum(1 for d in domains if d.ssl_status == 'missing')
+
+            # Unique domains banned in last 24h
+            yesterday = datetime.utcnow() - timedelta(hours=24)
+            recent_bans = session.query(StatusHistory.domain_id)\
+                .filter(StatusHistory.status == 'banned')\
+                .filter(StatusHistory.checked_at >= yesterday)\
+                .distinct()\
+                .count()
+
+            # Build message
+            message = f"""📊 <b>GDBChecker - Отчет о статусе</b>
+
+<b>SafeBrowsing статистика:</b>
+• Всего доменов: {total}
+• ✅ OK: {ok_count}
+• 🚨 Забанено: {banned_count}
+• ⚠️ Ошибки: {error_count}
+• ⏳ Ожидают проверки: {pending_count}
+
+<b>🔒 SSL Статус:</b>
+• ✅ Валидный SSL: {ssl_valid}
+• ⚠️ SSL истёк: {ssl_expired}
+• ⚠️ Невалидный SSL: {ssl_invalid}
+• ❌ SSL отсутствует: {ssl_missing}
+
+<b>За последние 24 часа:</b>
+• Новых банов: {recent_bans}
+"""
+
+            # Add banned domains list
+            if banned_count > 0:
+                banned_domains = [d for d in domains if d.current_status == 'banned']
+                message += "\n<b>🚨 Забаненные домены:</b>\n"
+                for d in banned_domains[:10]:  # Limit to 10
+                    message += f"• {d.domain}"
+                    if d.project:
+                        message += f" ({d.project})"
+                    message += "\n"
+                if banned_count > 10:
+                    message += f"<i>... и еще {banned_count - 10} доменов</i>\n"
+
+            message += f"\n<i>Отчет создан: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC</i>"
+
+            # Send to Telegram
+            self.notifier.send_message(message)
+            logger.info("Status report sent to Telegram")
+
+        except Exception as e:
+            logger.error(f"Error sending status report: {str(e)}")
 
 
 if __name__ == '__main__':

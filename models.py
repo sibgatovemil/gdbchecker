@@ -18,6 +18,9 @@ class Domain(Base):
     ssl_status = Column(String(50), default='pending')  # valid, expired, invalid, missing, pending
     last_check_time = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    added_by = Column(String(50), nullable=True)  # Username who added the domain
+    expire_date = Column(DateTime, nullable=True)  # Domain expiration date
+    autorenew = Column(String(20), nullable=True)  # enabled, disabled, unknown
 
     # Relationship
     history = relationship("StatusHistory", back_populates="domain", cascade="all, delete-orphan")
@@ -31,7 +34,10 @@ class Domain(Base):
             'current_status': self.current_status,
             'ssl_status': self.ssl_status,
             'last_check_time': self.last_check_time.isoformat() if self.last_check_time else None,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'added_by': self.added_by,
+            'expire_date': self.expire_date.isoformat() if self.expire_date else None,
+            'autorenew': self.autorenew
         }
 
 class StatusHistory(Base):

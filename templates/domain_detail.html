@@ -16,31 +16,48 @@
         <h3><i class="bi bi-globe"></i> {{ domain.domain }}</h3>
     </div>
     <div class="card-body">
-        <div class="row">
+        <div class="row mb-3">
             <div class="col-md-6">
-                <p><strong>Project:</strong> {{ domain.project or 'Not specified' }}</p>
-                <p><strong>Purpose:</strong> {{ domain.purpose or 'Not specified' }}</p>
-                <p><strong>Created:</strong> {{ domain.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                <p><strong>Проект:</strong> {{ domain.project or 'Не указан' }}</p>
+                <p><strong>Назначение:</strong> {{ domain.purpose or 'Не указано' }}</p>
+                <p><strong>Добавлен:</strong> {{ domain.created_at|moscow_time_full }}</p>
+                <p><strong>Добавил:</strong> {{ domain.added_by or 'Неизвестно' }}</p>
             </div>
             <div class="col-md-6">
-                <p><strong>Current Status:</strong>
+                <p><strong>Статус SafeBrowsing:</strong>
                     <span class="badge status-badge status-{{ domain.current_status }}">
                         {% if domain.current_status == 'ok' %}
                             <i class="bi bi-check-circle"></i> OK
                         {% elif domain.current_status == 'banned' %}
-                            <i class="bi bi-x-circle"></i> BANNED
+                            <i class="bi bi-x-circle"></i> ЗАБАНЕН
                         {% elif domain.current_status == 'error' %}
-                            <i class="bi bi-exclamation-triangle"></i> ERROR
+                            <i class="bi bi-exclamation-triangle"></i> ОШИБКА
                         {% else %}
-                            <i class="bi bi-clock"></i> PENDING
+                            <i class="bi bi-clock"></i> ОЖИДАЕТ
                         {% endif %}
                     </span>
                 </p>
-                <p><strong>Last Check:</strong>
+                <p><strong>Последняя проверка:</strong>
                     {% if domain.last_check_time %}
-                        {{ domain.last_check_time.strftime('%Y-%m-%d %H:%M:%S') }}
+                        {{ domain.last_check_time|moscow_time_full }}
                     {% else %}
-                        Never checked
+                        Никогда не проверялся
+                    {% endif %}
+                </p>
+                <p><strong>Истекает:</strong>
+                    {% if domain.expire_date %}
+                        {{ domain.expire_date|moscow_time_full }}
+                    {% else %}
+                        <span style="color: red;">Не указано</span>
+                    {% endif %}
+                </p>
+                <p><strong>Автопродление:</strong>
+                    {% if domain.autorenew == 'enabled' %}
+                        <span class="badge bg-success">Включено</span>
+                    {% elif domain.autorenew == 'disabled' %}
+                        <span class="badge bg-primary">Выключено</span>
+                    {% else %}
+                        <span class="badge bg-danger">Неизвестно</span>
                     {% endif %}
                 </p>
             </div>
@@ -60,30 +77,22 @@
                     <tr>
                         <th>Date & Time</th>
                         <th>Status</th>
-                        <th>Details</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for record in history %}
                     <tr>
-                        <td>{{ record.checked_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td>{{ record.checked_at|moscow_time_pretty }}</td>
                         <td>
                             <span class="badge status-badge status-{{ record.status }}">
                                 {% if record.status == 'ok' %}
                                     <i class="bi bi-check-circle"></i> OK
                                 {% elif record.status == 'banned' %}
-                                    <i class="bi bi-x-circle"></i> BANNED
+                                    <i class="bi bi-x-circle"></i> ЗАБАНЕН
                                 {% elif record.status == 'error' %}
-                                    <i class="bi bi-exclamation-triangle"></i> ERROR
+                                    <i class="bi bi-exclamation-triangle"></i> ОШИБКА
                                 {% endif %}
                             </span>
-                        </td>
-                        <td>
-                            {% if record.details %}
-                                <small class="text-muted">{{ record.details[:100] }}</small>
-                            {% else %}
-                                -
-                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
