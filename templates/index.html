@@ -8,6 +8,15 @@
         <h2><i class="bi bi-speedometer2"></i> Dashboard</h2>
     </div>
     <div class="col text-end">
+        <button class="btn btn-info" onclick="sendStatusToTelegram()">
+            <i class="bi bi-telegram"></i> Send Status to Telegram
+        </button>
+        <button class="btn btn-warning" onclick="checkAllDomains()">
+            <i class="bi bi-arrow-repeat"></i> Check All Domains
+        </button>
+        <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#importCsvModal">
+            <i class="bi bi-upload"></i> Import CSV
+        </button>
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDomainModal">
             <i class="bi bi-plus-circle"></i> Add Domain
         </button>
@@ -165,6 +174,38 @@
     </div>
 </div>
 
+<!-- Import CSV Modal -->
+<div class="modal fade" id="importCsvModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Import Domains from CSV</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="importCsvForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="csvFile" class="form-label">Select CSV File</label>
+                        <input type="file" class="form-control" id="csvFile" accept=".csv" required>
+                    </div>
+                    <div class="alert alert-info">
+                        <strong>CSV Format:</strong>
+                        <ul class="mb-0">
+                            <li>Required column: <code>domain</code> (or Domain, DOMAIN, url, URL)</li>
+                            <li>Optional columns: <code>project</code>, <code>purpose</code></li>
+                            <li>Example: domain,project,purpose</li>
+                        </ul>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="importCsv()">Import</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -231,6 +272,107 @@ async function deleteDomain(id, domain) {
         }
     } catch (e) {
         alert('Network error: ' + e.message);
+    }
+}
+
+// Send status to Telegram
+async function sendStatusToTelegram() {
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Sending...';
+
+    try {
+        const response = await fetch('/api/telegram/send-status', { method: 'POST' });
+        const data = await response.json();
+
+        if (response.ok) {
+            alert('✅ Status report sent to Telegram!');
+        } else {
+            alert('❌ Error: ' + (data.error || 'Unknown error'));
+        }
+    } catch (e) {
+        alert('❌ Network error: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+// Check all domains
+async function checkAllDomains() {
+    if (!confirm('Start checking all domains? This may take several minutes.')) return;
+
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Checking...';
+
+    try {
+        const response = await fetch('/api/check-domains', { method: 'POST' });
+        const data = await response.json();
+
+        if (response.ok) {
+            alert('✅ Domain check completed successfully!');
+            location.reload();
+        } else {
+            alert('❌ Error: ' + (data.error || 'Unknown error'));
+        }
+    } catch (e) {
+        alert('❌ Network error: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+// Import CSV
+async function importCsv() {
+    const fileInput = document.getElementById('csvFile');
+    const file = fileInput.files[0];
+
+    if (!file) {
+        alert('Please select a CSV file');
+        return;
+    }
+
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Importing...';
+
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/import/csv', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            let message = `✅ Import completed!\n\n`;
+            message += `• Added: ${data.added} domains\n`;
+            message += `• Skipped (duplicates): ${data.skipped}\n`;
+            if (data.errors.length > 0) {
+                message += `\n⚠️ Errors (${data.errors.length}):\n`;
+                message += data.errors.slice(0, 5).join('\n');
+                if (data.errors.length > 5) {
+                    message += `\n... and ${data.errors.length - 5} more errors`;
+                }
+            }
+            alert(message);
+            location.reload();
+        } else {
+            alert('❌ Error: ' + (data.error || 'Unknown error'));
+        }
+    } catch (e) {
+        alert('❌ Network error: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
     }
 }
 </script>

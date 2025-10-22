@@ -32,11 +32,24 @@ class TelegramNotifier:
             return False
 
         try:
-            self.bot.send_message(
-                chat_id=self.chat_id,
-                text=message,
-                parse_mode='HTML'
-            )
+            import asyncio
+
+            # Run async function in sync context
+            async def _send():
+                await self.bot.send_message(
+                    chat_id=self.chat_id,
+                    text=message,
+                    parse_mode='HTML'
+                )
+
+            # Get or create event loop
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+            loop.run_until_complete(_send())
             logger.info("Telegram notification sent successfully")
             return True
 

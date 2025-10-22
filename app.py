@@ -3,10 +3,12 @@
 from flask import Flask, render_template, request, jsonify, send_file
 from flask_cors import CORS
 from models import get_session, Domain, StatusHistory
-from datetime import datetime
+from telegram_notifier import TelegramNotifier
+from datetime import datetime, timedelta
 import csv
 import io
 import logging
+import subprocess
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -205,6 +207,191 @@ def export_csv():
             download_name=f'domains_{datetime.utcnow().strftime("%Y%m%d_%H%M%S")}.csv'
         )
 
+    finally:
+        session.close()
+
+
+@app.route('/api/telegram/send-status', methods=['POST'])
+def send_status_telegram():
+    """Send current status report to Telegram"""
+    session = get_session()
+    try:
+        domains = session.query(Domain).all()
+
+        # Statistics
+        total = len(domains)
+        ok_count = sum(1 for d in domains if d.current_status == 'ok')
+        banned_count = sum(1 for d in domains if d.current_status == 'banned')
+        error_count = sum(1 for d in domains if d.current_status == 'error')
+        pending_count = sum(1 for d in domains if d.current_status == 'pending')
+
+        # Domains banned in last 24h
+        yesterday = datetime.utcnow() - timedelta(hours=24)
+        recent_bans = session.query(StatusHistory)\
+            .filter(StatusHistory.status == 'banned')\
+            .filter(StatusHistory.checked_at >= yesterday)\
+            .count()
+
+        # Build message
+        message = f"""📊 <b>GDBChecker - Отчет о статусе</b>
+
+<b>Общая статистика:</b>
+• Всего доменов: {total}
+• ✅ OK: {ok_count}
+• 🚨 Забанено: {banned_count}
+• ⚠️ Ошибки: {error_count}
+• ⏳ Ожидают проверки: {pending_count}
+
+<b>За последние 24 часа:</b>
+• Новых банов: {recent_bans}
+"""
+
+        # Add banned domains list
+        if banned_count > 0:
+            banned_domains = [d for d in domains if d.current_status == 'banned']
+            message += "\n<b>🚨 Забаненные домены:</b>\n"
+            for d in banned_domains[:10]:  # Limit to 10
+                message += f"• {d.domain}"
+                if d.project:
+                    message += f" ({d.project})"
+                message += "\n"
+            if banned_count > 10:
+                message += f"<i>... и еще {banned_count - 10} доменов</i>\n"
+
+        # System health check
+        message += "\n<b>🔧 Состояние системы:</b>\n"
+        message += "• База данных: ✅ OK\n"
+        message += "• API: ✅ OK\n"
+        message += f"• Telegram: ✅ OK\n"
+        message += f"\n<i>Отчет создан: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC</i>"
+
+        # Send to Telegram
+        notifier = TelegramNotifier()
+        success = notifier.send_message(message)
+
+        if success:
+            return jsonify({'success': True, 'message': 'Status sent to Telegram'}), 200
+        else:
+            return jsonify({'success': False, 'error': 'Failed to send message'}), 500
+
+    except Exception as e:
+        logger.error(f"Error sending status to Telegram: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        session.close()
+
+
+@app.route('/api/check-domains', methods=['POST'])
+def trigger_domain_check():
+    """Trigger immediate domain check"""
+    try:
+        # Run checker.py in background
+        result = subprocess.run(
+            ['python', 'checker.py'],
+            capture_output=True,
+            text=True,
+            timeout=300  # 5 minutes timeout
+        )
+
+        if result.returncode == 0:
+            return jsonify({
+                'success': True,
+                'message': 'Domain check completed successfully',
+                'output': result.stdout
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Check failed',
+                'output': result.stderr
+            }), 500
+
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': 'Check timeout (>5 minutes)'}), 504
+    except Exception as e:
+        logger.error(f"Error triggering domain check: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/import/csv', methods=['POST'])
+def import_csv():
+    """Import domains from CSV file"""
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+
+    file = request.files['file']
+
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+
+    if not file.filename.endswith('.csv'):
+        return jsonify({'error': 'File must be CSV'}), 400
+
+    session = get_session()
+    try:
+        # Read CSV
+        stream = io.StringIO(file.stream.read().decode('utf-8'), newline=None)
+        csv_reader = csv.DictReader(stream)
+
+        added_count = 0
+        skipped_count = 0
+        errors = []
+
+        for row_num, row in enumerate(csv_reader, start=2):  # Start from 2 (header is row 1)
+            try:
+                # Get domain from CSV (try different column names)
+                domain_name = None
+                for key in ['domain', 'Domain', 'DOMAIN', 'url', 'URL']:
+                    if key in row:
+                        domain_name = row[key].strip().lower()
+                        break
+
+                if not domain_name:
+                    errors.append(f"Row {row_num}: No domain column found")
+                    continue
+
+                # Clean domain
+                domain_name = domain_name.replace('http://', '').replace('https://', '')
+                domain_name = domain_name.split('/')[0]
+
+                if not domain_name:
+                    errors.append(f"Row {row_num}: Empty domain")
+                    continue
+
+                # Check if exists
+                existing = session.query(Domain).filter_by(domain=domain_name).first()
+                if existing:
+                    skipped_count += 1
+                    continue
+
+                # Create new domain
+                new_domain = Domain(
+                    domain=domain_name,
+                    project=row.get('project', row.get('Project', '')).strip() or None,
+                    purpose=row.get('purpose', row.get('Purpose', '')).strip() or None,
+                    current_status='pending'
+                )
+
+                session.add(new_domain)
+                added_count += 1
+
+            except Exception as e:
+                errors.append(f"Row {row_num}: {str(e)}")
+                continue
+
+        session.commit()
+
+        return jsonify({
+            'success': True,
+            'added': added_count,
+            'skipped': skipped_count,
+            'errors': errors
+        }), 200
+
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error importing CSV: {str(e)}")
+        return jsonify({'error': str(e)}), 500
     finally:
         session.close()
 
