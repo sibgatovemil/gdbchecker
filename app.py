@@ -1,23 +1,94 @@
 """Flask web application and API"""
 
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, flash, session as flask_session
 from flask_cors import CORS
-from models import get_session, Domain, StatusHistory
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from models import get_session, Domain, StatusHistory, User
 from telegram_notifier import TelegramNotifier
 from datetime import datetime, timedelta
 import csv
 import io
 import logging
 import subprocess
+import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 CORS(app)
+
+# Flask-Login setup
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Please log in to access this page.'
+
+@login_manager.user_loader
+def load_user(user_id):
+    session = get_session()
+    try:
+        user = session.query(User).filter_by(id=int(user_id)).first()
+        return user
+    finally:
+        session.close()
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Login page"""
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+
+        if not username or not password:
+            return render_template('login.html', error='Username and password are required')
+
+        session = get_session()
+        try:
+            user = session.query(User).filter_by(username=username).first()
+
+            if user and user.is_active and user.check_password(password):
+                # Update last login
+                user.last_login = datetime.utcnow()
+                session.commit()
+
+                # Log user in
+                login_user(user)
+                logger.info(f"User {username} logged in successfully")
+
+                # Redirect to next page or index
+                next_page = request.args.get('next')
+                return redirect(next_page if next_page else url_for('index'))
+            else:
+                logger.warning(f"Failed login attempt for username: {username}")
+                return render_template('login.html', error='Invalid username or password')
+
+        except Exception as e:
+            logger.error(f"Error during login: {str(e)}")
+            return render_template('login.html', error='An error occurred. Please try again.')
+        finally:
+            session.close()
+
+    return render_template('login.html')
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    """Logout user"""
+    username = current_user.username
+    logout_user()
+    logger.info(f"User {username} logged out")
+    return redirect(url_for('login'))
 
 
 @app.route('/')
+@login_required
 def index():
     """Main page with domain list"""
     session = get_session()
@@ -45,6 +116,7 @@ def index():
 
 
 @app.route('/domain/<int:domain_id>')
+@login_required
 def domain_detail(domain_id):
     """Domain details page with history"""
     session = get_session()
@@ -67,6 +139,7 @@ def domain_detail(domain_id):
 # API Endpoints
 
 @app.route('/api/domains', methods=['GET'])
+@login_required
 def get_domains():
     """Get all domains"""
     session = get_session()
@@ -78,6 +151,7 @@ def get_domains():
 
 
 @app.route('/api/domains', methods=['POST'])
+@login_required
 def add_domain():
     """Add new domain"""
     data = request.get_json()
@@ -121,6 +195,7 @@ def add_domain():
 
 
 @app.route('/api/domains/<int:domain_id>', methods=['GET'])
+@login_required
 def get_domain(domain_id):
     """Get single domain"""
     session = get_session()
@@ -134,6 +209,7 @@ def get_domain(domain_id):
 
 
 @app.route('/api/domains/<int:domain_id>', methods=['DELETE'])
+@login_required
 def delete_domain(domain_id):
     """Delete domain"""
     session = get_session()
@@ -158,6 +234,7 @@ def delete_domain(domain_id):
 
 
 @app.route('/api/domains/<int:domain_id>/history', methods=['GET'])
+@login_required
 def get_domain_history(domain_id):
     """Get domain status history"""
     session = get_session()
@@ -173,6 +250,7 @@ def get_domain_history(domain_id):
 
 
 @app.route('/api/export/csv', methods=['GET'])
+@login_required
 def export_csv():
     """Export domains to CSV"""
     session = get_session()
@@ -212,6 +290,7 @@ def export_csv():
 
 
 @app.route('/api/telegram/send-status', methods=['POST'])
+@login_required
 def send_status_telegram():
     """Send current status report to Telegram"""
     session = get_session()
@@ -225,22 +304,35 @@ def send_status_telegram():
         error_count = sum(1 for d in domains if d.current_status == 'error')
         pending_count = sum(1 for d in domains if d.current_status == 'pending')
 
-        # Domains banned in last 24h
+        # Unique domains banned in last 24h
         yesterday = datetime.utcnow() - timedelta(hours=24)
-        recent_bans = session.query(StatusHistory)\
+        recent_bans = session.query(StatusHistory.domain_id)\
             .filter(StatusHistory.status == 'banned')\
             .filter(StatusHistory.checked_at >= yesterday)\
+            .distinct()\
             .count()
+
+        # SSL Statistics
+        ssl_valid = sum(1 for d in domains if d.ssl_status == 'valid')
+        ssl_expired = sum(1 for d in domains if d.ssl_status == 'expired')
+        ssl_invalid = sum(1 for d in domains if d.ssl_status == 'invalid')
+        ssl_missing = sum(1 for d in domains if d.ssl_status == 'missing')
 
         # Build message
         message = f"""📊 <b>GDBChecker - Отчет о статусе</b>
 
-<b>Общая статистика:</b>
+<b>SafeBrowsing статистика:</b>
 • Всего доменов: {total}
 • ✅ OK: {ok_count}
 • 🚨 Забанено: {banned_count}
 • ⚠️ Ошибки: {error_count}
 • ⏳ Ожидают проверки: {pending_count}
+
+<b>🔒 SSL Статус:</b>
+• ✅ Валидный SSL: {ssl_valid}
+• ⚠️ SSL истёк: {ssl_expired}
+• ⚠️ Невалидный SSL: {ssl_invalid}
+• ❌ SSL отсутствует: {ssl_missing}
 
 <b>За последние 24 часа:</b>
 • Новых банов: {recent_bans}
@@ -282,6 +374,7 @@ def send_status_telegram():
 
 
 @app.route('/api/check-domains', methods=['POST'])
+@login_required
 def trigger_domain_check():
     """Trigger immediate domain check"""
     try:
@@ -314,6 +407,7 @@ def trigger_domain_check():
 
 
 @app.route('/api/import/csv', methods=['POST'])
+@login_required
 def import_csv():
     """Import domains from CSV file"""
     if 'file' not in request.files:
