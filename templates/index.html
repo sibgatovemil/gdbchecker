@@ -280,10 +280,19 @@ async function sendStatusToTelegram() {
     const btn = event.target;
     const originalText = btn.innerHTML;
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Sending...';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Sending... (may take up to 1 minute)';
 
     try {
-        const response = await fetch('/api/telegram/send-status', { method: 'POST' });
+        // Increase timeout for large reports
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 seconds
+
+        const response = await fetch('/api/telegram/send-status', {
+            method: 'POST',
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
         const data = await response.json();
 
         if (response.ok) {
@@ -292,7 +301,11 @@ async function sendStatusToTelegram() {
             alert('❌ Error: ' + (data.error || 'Unknown error'));
         }
     } catch (e) {
-        alert('❌ Network error: ' + e.message);
+        if (e.name === 'AbortError') {
+            alert('⏱️ Request timeout. The report may still be sending in background. Please check Telegram in 1-2 minutes.');
+        } else {
+            alert('❌ Network error: ' + e.message);
+        }
     } finally {
         btn.disabled = false;
         btn.innerHTML = originalText;
