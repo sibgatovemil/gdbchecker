@@ -244,16 +244,34 @@ class DomainChecker:
             ssl_invalid = sum(1 for d in domains if d.ssl_status == 'invalid')
             ssl_missing = sum(1 for d in domains if d.ssl_status == 'missing')
 
-            # Unique domains banned in last 24h
+            # Count domains that changed from 'ok' to 'banned' in last 24h
             yesterday = datetime.utcnow() - timedelta(hours=24)
-            recent_bans = session.query(StatusHistory.domain_id)\
-                .filter(StatusHistory.status == 'banned')\
-                .filter(StatusHistory.checked_at >= yesterday)\
-                .distinct()\
-                .count()
+            recent_bans = 0
+
+            # For each domain, check if it was banned in last 24h
+            for domain in domains:
+                # Get last banned record within 24h
+                last_ban = session.query(StatusHistory)\
+                    .filter(StatusHistory.domain_id == domain.id)\
+                    .filter(StatusHistory.status == 'banned')\
+                    .filter(StatusHistory.checked_at >= yesterday)\
+                    .order_by(StatusHistory.checked_at.desc())\
+                    .first()
+
+                if last_ban:
+                    # Check if previous status before this ban was 'ok'
+                    previous = session.query(StatusHistory)\
+                        .filter(StatusHistory.domain_id == domain.id)\
+                        .filter(StatusHistory.checked_at < last_ban.checked_at)\
+                        .order_by(StatusHistory.checked_at.desc())\
+                        .first()
+
+                    # Count as new ban if previous status was 'ok' or no previous status
+                    if not previous or previous.status == 'ok':
+                        recent_bans += 1
 
             # Build message
-            message = f"""📊 <b>GDBChecker - Отчет о статусе</b>
+            message = f"""📊 <b>KiteGroup DMS - Отчет о статусе</b>
 
 <b>SafeBrowsing статистика:</b>
 • Всего доменов: {total}
